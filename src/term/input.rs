@@ -6,6 +6,7 @@ pub enum Input {
     Single(usize),
     Pair(usize, usize),
     Timer,
+    Sigwinch,
 }
 
 impl Input {

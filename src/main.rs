@@ -41,9 +41,12 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
                     }
                 }
             }
+            Input::Sigwinch => {
+                let _ = view.resize(); // TODO: Async write
+                view.flush()?;
+            }
             res => {
-                view.resize()?; // TODO: Move to Sigwinch
-                write!(view.output, "{:?}", res).unwrap();
+                write!(view.output, "{:?}", res)?;
                 view.flush()?;
             }
         }
