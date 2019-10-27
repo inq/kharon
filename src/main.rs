@@ -7,26 +7,32 @@ use dope::executor::{self, Executor};
 extern crate failure;
 extern crate macros;
 
+mod buffer;
 mod command;
 mod term;
 mod view;
 
 async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
-    use std::io::Write;
     use term::Input;
     use termion::raw::IntoRawMode;
 
-    let _stdout = std::io::stdout().into_raw_mode().unwrap();
     let mut view = {
         let stdout = std::io::stdout().into_raw_mode().unwrap();
         let screen = termion::screen::AlternateScreen::from(stdout);
         view::View::new(screen)?
     };
-    view.render()?;
     let mut cmd = command::Handler::new();
 
+    use futures::io::AsyncWriteExt;
     use futures::StreamExt;
     let mut reader = term::reader(executor.reactor()?)?;
+    let mut writer = dope::io::stdout(executor.reactor()?)?;
+
+    let res = view.render()?;
+    writer.write(res.as_bytes()).await?;
+    writer.flush().await?;
+    log::warn!("W R I T E");
+
     'outer: loop {
         match reader.next().await.unwrap()? {
             Input::Timer => {
@@ -34,20 +40,18 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
             }
             Input::Keyboard(key) => {
                 if let Some(action) = cmd.handle_key(key) {
-                    write!(view.output, "{:?}", action).unwrap();
-                    view.flush()?;
+                    writer.write(format!("{:?}", action).as_bytes()).await?;
                     if let command::Action::Quit = action {
                         break 'outer;
                     }
                 }
             }
             Input::Sigwinch => {
-                let _ = view.resize(); // TODO: Async write
-                view.flush()?;
+                log::warn!("SIGWINCH!");
+                writer.write(view.resize()?.as_bytes()).await?;
             }
             res => {
-                write!(view.output, "{:?}", res)?;
-                view.flush()?;
+                writer.write(format!("{:?}", res).as_bytes()).await?;
             }
         }
     }
@@ -56,8 +60,8 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
 
 fn main() -> Result<(), failure::Error> {
     color_backtrace::install();
-    //log::set_logger(&logger::Logger).unwrap();
-    //log::set_max_level(log::LevelFilter::Debug);
+    // log::set_logger(&logger::Logger).unwrap();
+    // log::set_max_level(log::LevelFilter::Debug);
 
     let executor = Executor::new()?;
     let handle = executor.handle();

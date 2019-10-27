@@ -7,7 +7,7 @@ use futures::io::AsyncRead;
 use crate::term::Input;
 
 pub(in crate::term) struct Stdin {
-    stdin: dope::io::Stdin,
+    stdin: futures::io::BufReader<dope::io::Stdin>,
     data: String,
 }
 

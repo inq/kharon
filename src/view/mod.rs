@@ -17,18 +17,14 @@ impl<T: Write> View<T> {
         })
     }
 
-    pub fn flush(&mut self) -> std::io::Result<()> {
-        self.output.flush()
-    }
-
-    pub fn resize(&mut self) -> std::io::Result<()> {
+    pub fn resize(&mut self) -> std::io::Result<String> {
         let (width, height) = termion::terminal_size()?;
         self.width = width;
         self.height = height;
         self.render()
     }
 
-    pub fn render(&mut self) -> std::io::Result<()> {
+    pub fn render(&mut self) -> std::io::Result<String> {
         use buffer::{Buffer, Palette};
         use termion::{color, cursor};
 
@@ -39,9 +35,6 @@ impl<T: Write> View<T> {
         let inverted = Palette::new(fg, bg);
         buffer.erase(self.width as usize, self.height as usize, palette);
         let (_brush, rendered) = buffer.render(1, 1, inverted);
-        write!(self.output, "{}{}", rendered, cursor::Goto(3, 3),)?;
-
-        self.flush()?;
-        Ok(())
+        Ok(format!("{}{}", rendered, cursor::Goto(3, 3),))
     }
 }
