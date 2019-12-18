@@ -55,7 +55,7 @@ enum Node {
 
 impl Node {
     fn new_inner(id: String) -> Self {
-        Node::Inner { id: id, children: BTreeMap::new() }
+        Node::Inner { id, children: BTreeMap::new() }
     }
 
     fn add_pair(&mut self, keys: &[Key], command: Command<String>) -> Result<(), Error> {
@@ -76,14 +76,12 @@ impl Node {
             if let Some(_existing) = children.insert(key, child) {
                 return Err(Error::Duplicated(format!("{:?}", head)))
             };
+        } else if let Some(child) = children.get_mut(&key) {
+            child.add_pair(tail, command)?;
         } else {
-            if let Some(child) = children.get_mut(&key) {
-                child.add_pair(tail, command)?;
-            } else {
-                let mut child = Self::new_inner(id);
-                child.add_pair(tail, command)?;
-                children.insert(key, child);
-            };
+            let mut child = Self::new_inner(id);
+            child.add_pair(tail, command)?;
+            children.insert(key, child);
         }
         Ok(())
     }

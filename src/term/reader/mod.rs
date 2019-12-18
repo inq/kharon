@@ -11,8 +11,7 @@ pub fn build(
     let stdin = Stdin::new(reactor.clone())?;
     let timer = dope::timer::Timer::start(reactor.clone(), chrono::Duration::seconds(1))?
         .map(|()| Ok(Input::Timer));
-    let signal =
-        dope::io::Signal::start(reactor.clone(), libc::SIGWINCH)?.map(|()| Ok(Input::Sigwinch));
+    let signal = dope::io::Signal::start(reactor, libc::SIGWINCH)?.map(|()| Ok(Input::Sigwinch));
 
     Ok(futures::stream::select(
         futures::stream::select(timer, signal),

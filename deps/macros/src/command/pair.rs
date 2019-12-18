@@ -45,10 +45,7 @@ impl Pair {
             Some(TokenTree::Group(group)) => Self::parse_attrs(group.stream()),
             cur => Err(Error::invalid_token(cur)),
         }?;
-        Ok(Self {
-            keys: keys,
-            command: command,
-        })
+        Ok(Self { keys, command })
     }
 
     fn parse_keys(sequence_str: &str) -> Result<Vec<common::Key>, failure::Error> {
@@ -70,6 +67,6 @@ impl Pair {
             Some(TokenTree::Literal(lit)) => Ok(lit.to_string().trim_matches('"').to_string()),
             cur => Err(Error::invalid_token(cur)),
         }?;
-        Ok(Command::new(name.to_string(), function.to_string()))
+        Ok(Command::new(name, function))
     }
 }

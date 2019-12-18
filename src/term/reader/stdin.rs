@@ -14,7 +14,7 @@ pub(in crate::term) struct Stdin {
 impl futures::Stream for Stdin {
     type Item = Result<Input, Error>;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> futures::Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
         let mut buf = std::mem::MaybeUninit::<[u8; 32]>::uninit();
 
         let mut mut_ref = Pin::as_mut(&mut self);
@@ -28,11 +28,11 @@ impl futures::Stream for Stdin {
                 Ok(parsed) => {
                     mut_ref.data.push_str(&parsed);
                     if let Some(input) = mut_ref.consume() {
-                        return futures::Poll::Ready(Some(Ok(input)));
+                        return Poll::Ready(Some(Ok(input)));
                     }
                 }
                 Err(err) => {
-                    return futures::Poll::Ready(Some(Err(failure::Error::from(err))));
+                    return Poll::Ready(Some(Err(failure::Error::from(err))));
                 }
             }
         }
@@ -52,7 +52,7 @@ impl Stdin {
 
     fn consume(&mut self) -> Option<Input> {
         let (input, remaining) = Input::parse(&self.data);
-        self.data = remaining.to_string();
+        self.data = remaining;
         input
     }
 }
