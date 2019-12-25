@@ -31,12 +31,15 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
     let res = view.render()?;
     writer.write(res.as_bytes()).await?;
     writer.flush().await?;
-    log::warn!("W R I T E");
+
+    let delay = dope::timer::Delay::start(executor.reactor()?, chrono::Duration::seconds(3))?;
+    delay.await?;
 
     'outer: loop {
         match reader.next().await.unwrap()? {
             Input::Timer => {
-                println!("TIMER");
+                writer.write(b"TIMER").await?;
+                writer.flush().await?;
             }
             Input::Keyboard(key) => {
                 if let Some(action) = cmd.handle_key(key) {
