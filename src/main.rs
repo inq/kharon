@@ -29,7 +29,8 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
     let mut writer = dope::io::stdout(executor.reactor()?)?;
 
     let res = view.render()?;
-    writer.write(res.as_bytes()).await?;
+    log::info!("WRITER: {:?}", res.as_bytes().len());
+    writer.write_all(res.as_bytes()).await?;
     writer.flush().await?;
 
     let delay = dope::timer::Delay::start(executor.reactor()?, chrono::Duration::seconds(3))?;
@@ -38,12 +39,11 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
     'outer: loop {
         match reader.next().await.unwrap()? {
             Input::Timer => {
-                writer.write(b"TIMER").await?;
-                writer.flush().await?;
+                writer.write_all(b"TIMER").await?;
             }
             Input::Keyboard(key) => {
                 if let Some(action) = cmd.handle_key(key) {
-                    writer.write(format!("{:?}", action).as_bytes()).await?;
+                    writer.write_all(format!("{:?}", action).as_bytes()).await?;
                     if let command::Action::Quit = action {
                         break 'outer;
                     }
@@ -51,12 +51,13 @@ async fn main_async(executor: &executor::Handle) -> Result<(), failure::Error> {
             }
             Input::Sigwinch => {
                 log::warn!("SIGWINCH!");
-                writer.write(view.resize()?.as_bytes()).await?;
+                writer.write_all(view.resize()?.as_bytes()).await?;
             }
             res => {
-                writer.write(format!("{:?}", res).as_bytes()).await?;
+                writer.write_all(format!("{:?}", res).as_bytes()).await?;
             }
         }
+        writer.flush().await?;
     }
     Ok(())
 }
